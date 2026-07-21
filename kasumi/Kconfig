@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Kasumi in-tree integration for GKI (android14-6.1).
+# Adapted from upstream Anatdx/Kasumi (LKM form) for obj-y drop-in per the
+# Re-Kernel precedent in zzh20188/GKI_KernelSU_SUSFS build.yml.
+#
+# Deliberate omission of "depends on MODULES": upstream ships as an out-of-tree
+# .ko; when integrated as obj-y into vmlinux we do not require MODULES=y. All
+# runtime symbol resolution is via kallsyms_lookup_name (kprobes-registered),
+# which is what the KPROBES/KALLSYMS_ALL dependencies below enforce.
+
+config KASUMI
+	bool "Kasumi kernel-side helper (in-tree obj-y)"
+	default n
+	depends on ARM64
+	depends on KPROBES
+	depends on KALLSYMS_ALL
+	depends on DYNAMIC_FTRACE_WITH_REGS
+	help
+	  Kasumi is an in-kernel helper that installs ftrace/kprobes-based
+	  overrides for a curated set of VFS, syscall and selinuxfs paths.
+	  Enabling this option compiles Kasumi into vmlinux and starts it at
+	  device_initcall time via the module_init() thunk.
+
+	  Say N unless you know you want this. On this GKI base it is intended
+	  to be toggled via workflow input `use_kasumi=true`, which adds
+	  CONFIG_KASUMI=y to gki_defconfig at build time.

@@ -1,0 +1,14 @@
+Upstream:  https://github.com/Anatdx/Kasumi
+Branch:    main (LKM form)
+Snapshot:  /workspace/kasumi-upstream/src at time of staging
+
+Local port (in-tree obj-y for android14-6.1 GKI):
+- src/Makefile      → removed (LKM-only)
+- src/**            → kasumi/** (unchanged)
+- kasumi/Kbuild     → NEW  (obj-y, kasumi_builtin-y from Sultan port shape)
+- kasumi/Kconfig    → NEW  (no "depends on MODULES"; Re-Kernel precedent)
+
+Integration is performed at build time by build.yml step "集成 Kasumi
+(in-tree obj-y)" which copies this directory into common/drivers/kasumi/
+and wires it via common/drivers/{Kconfig,Makefile}. See
+/workspace/kasumi-on-gki-plan.md for design notes.

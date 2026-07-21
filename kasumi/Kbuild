@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Kasumi in-tree Kbuild. Mirrors the object list from upstream
+# src/Makefile (kasumi_lkm-objs) verbatim, converted from obj-m to
+# obj-$(CONFIG_KASUMI) per the Re-Kernel precedent.
+
+obj-$(CONFIG_KASUMI) += kasumi_builtin.o
+
+kasumi_builtin-y := \
+	kasumi_main.o \
+	core/kasumi_bootstrap.o \
+	core/kasumi_runtime.o \
+	core/kasumi_file_view.o \
+	core/kasumi_root_detection.o \
+	control/kasumi_ioctl.o \
+	policy/kasumi_path_policy.o \
+	overlay/kasumi_overlay.o \
+	hooks/kasumi_proc_hooks.o \
+	hooks/kasumi_proc_read_hooks.o \
+	hooks/kasumi_vfs_hooks.o \
+	hooks/kasumi_syscall_redirect.o \
+	hooks/kasumi_ftrace_hooks.o \
+	features/kasumi_uname.o \
+	features/kasumi_sop_override.o \
+	features/kasumi_dop_override.o \
+	features/kasumi_xattr_sid_override.o \
+	features/kasumi_iop_override.o \
+	features/kasumi_fop_override.o \
+	features/kasumi_fake_mountinfo.o \
+	features/kasumi_fake_selinuxfs_access.o
+
+kasumi_builtin-$(CONFIG_ARM64) += hooks/arm64/kasumi_patch_memory.o
+
+# Include-path plumbing — upstream layout uses side directories referenced
+# with bare names (#include "kasumi_bootstrap.h" etc.). Reproduce the LKM
+# ccflags-y block using $(srctree)/drivers/kasumi/... so it resolves under
+# the wired-in mount location common/drivers/kasumi/.
+ccflags-y += -I$(srctree)/drivers/kasumi/include
+ccflags-y += -I$(srctree)/drivers/kasumi/internal
+ccflags-y += -I$(srctree)/drivers/kasumi/core
+ccflags-y += -I$(srctree)/drivers/kasumi/control
+ccflags-y += -I$(srctree)/drivers/kasumi/policy
+ccflags-y += -I$(srctree)/drivers/kasumi/overlay
+ccflags-y += -I$(srctree)/drivers/kasumi/hooks
+ccflags-y += -I$(srctree)/drivers/kasumi/features

@@ -1,0 +1,62 @@
+/* SPDX-License-Identifier: Apache-2.0 OR GPL-2.0 */
+/*
+ * Kasumi - ftrace-backed VFS hook interfaces and kretprobe bridge helpers.
+ *
+ * License: Author's work under Apache-2.0; when used as a kernel module
+ * (or linked with the Linux kernel), GPL-2.0 applies for kernel compatibility.
+ *
+ * Author: Anatdx
+ */
+#ifndef _KASUMI_FTRACE_HOOKS_H
+#define _KASUMI_FTRACE_HOOKS_H
+
+#include <linux/types.h>
+#include <linux/errno.h>
+
+struct kretprobe_instance;
+struct pt_regs;
+
+#ifdef CONFIG_DYNAMIC_FTRACE
+
+/* Try to register ftrace for vfs_getattr, d_path, iterate_dir, vfs_getxattr.
+ * On success: fills addr[0..3] with symbol addresses, returns 0.
+ * On failure: returns negative errno.
+ */
+int kasumi_ftrace_try_register(unsigned long addr[4]);
+
+/* Unregister ftrace. Call before unregistering kretprobes. */
+void kasumi_ftrace_unregister(void);
+
+/* kretprobe entry/ret handlers when using ftrace for VFS entry. */
+int kasumi_ftrace_krp_entry(struct kretprobe_instance *ri, struct pt_regs *regs);
+int kasumi_ftrace_krp_ret(struct kretprobe_instance *ri, struct pt_regs *regs);
+
+#else
+
+static inline int kasumi_ftrace_try_register(unsigned long addr[4])
+{
+	(void)addr;
+	return -EOPNOTSUPP;
+}
+
+static inline void kasumi_ftrace_unregister(void)
+{
+}
+
+static inline int kasumi_ftrace_krp_entry(struct kretprobe_instance *ri, struct pt_regs *regs)
+{
+	(void)ri;
+	(void)regs;
+	return 0;
+}
+
+static inline int kasumi_ftrace_krp_ret(struct kretprobe_instance *ri, struct pt_regs *regs)
+{
+	(void)ri;
+	(void)regs;
+	return 0;
+}
+
+#endif /* CONFIG_DYNAMIC_FTRACE */
+
+#endif /* _KASUMI_FTRACE_HOOKS_H */
