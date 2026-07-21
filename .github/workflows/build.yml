@@ -56,6 +56,10 @@ on:
         required: false
         type: boolean
         default: false
+      use_kasumi:
+        required: false
+        type: boolean
+        default: false
       cve_2026_43499_patch:
         required: false
         type: boolean
@@ -63,7 +67,7 @@ on:
       enable_susfs:
         required: true
         type: boolean
-        default: true
+        default: false
       supp_op:
         required: false
         type: boolean
@@ -109,6 +113,7 @@ jobs:
           echo "BBG 补丁      : ${{ inputs.use_bbg }}"
           echo "KPM 功能      : ${{ inputs.use_kpm }}"
           echo "Re-Kernel     : ${{ inputs.use_rekernel }}"
+          echo "Kasumi        : ${{ inputs.use_kasumi }}"
           echo "CVE-2026-43499: ${{ inputs.cve_2026_43499_patch }}"
           echo "Droidspaces   : ${{ inputs.droidspaces }}"
           echo "NTSync        : ${{ inputs.droidspaces_ntsync }}"
@@ -1227,6 +1232,54 @@ jobs:
           # 配置 defconfig（幂等）
           grep -q '^CONFIG_REKERNEL=y$' "$DEFCONFIG" || echo "CONFIG_REKERNEL=y" >> "$DEFCONFIG"
           grep -q '^CONFIG_REKERNEL_NETWORK=y$' "$DEFCONFIG" || echo "CONFIG_REKERNEL_NETWORK=y" >> "$DEFCONFIG"
+
+      - name: 集成 Kasumi (in-tree obj-y)
+        if: inputs.use_kasumi
+        working-directory: ${{ env.KERNEL_ROOT }}
+        run: |
+          set -e
+          echo "Integrating Kasumi (obj-y drop-in, Re-Kernel precedent)..."
+
+          # 源码由本仓库 checkout 提供（顶层 kasumi/ 目录）
+          if [ ! -d "$GITHUB_WORKSPACE/kasumi" ]; then
+            echo "::error::Kasumi source directory missing from workflow checkout"
+            exit 1
+          fi
+          if [ ! -f "$GITHUB_WORKSPACE/kasumi/Kbuild" ] || [ ! -f "$GITHUB_WORKSPACE/kasumi/Kconfig" ]; then
+            echo "::error::kasumi/Kbuild or kasumi/Kconfig missing in fork"
+            exit 1
+          fi
+
+          # Drop into common/drivers/kasumi/ (mirror Re-Kernel mount point)
+          rm -rf common/drivers/kasumi
+          mkdir -p common/drivers/kasumi
+          cp -a "$GITHUB_WORKSPACE/kasumi/." common/drivers/kasumi/
+
+          # 把 Kbuild 提升为 Makefile 以匹配 kbuild 常规查找路径
+          if [ -f common/drivers/kasumi/Kbuild ] && [ ! -f common/drivers/kasumi/Makefile ]; then
+            mv common/drivers/kasumi/Kbuild common/drivers/kasumi/Makefile
+          fi
+
+          # 挂载到驱动树 (镜像 Re-Kernel 步骤 1214-1219)
+          if ! grep -qF 'source "drivers/kasumi/Kconfig"' common/drivers/Kconfig; then
+            sed -i '/^endmenu$/i source "drivers/kasumi/Kconfig"' common/drivers/Kconfig
+          fi
+          if ! grep -qF 'obj-$(CONFIG_KASUMI) += kasumi/' common/drivers/Makefile; then
+            echo 'obj-$(CONFIG_KASUMI) += kasumi/' >> common/drivers/Makefile
+          fi
+
+          # 配置 defconfig（幂等）
+          grep -q '^CONFIG_KASUMI=y$' "$DEFCONFIG" || echo "CONFIG_KASUMI=y" >> "$DEFCONFIG"
+          grep -q '^CONFIG_KPROBES=y$' "$DEFCONFIG" || echo "CONFIG_KPROBES=y" >> "$DEFCONFIG"
+          grep -q '^CONFIG_KALLSYMS=y$' "$DEFCONFIG" || echo "CONFIG_KALLSYMS=y" >> "$DEFCONFIG"
+          grep -q '^CONFIG_KALLSYMS_ALL=y$' "$DEFCONFIG" || echo "CONFIG_KALLSYMS_ALL=y" >> "$DEFCONFIG"
+          grep -q '^CONFIG_DYNAMIC_FTRACE_WITH_REGS=y$' "$DEFCONFIG" || echo "CONFIG_DYNAMIC_FTRACE_WITH_REGS=y" >> "$DEFCONFIG"
+          grep -q '^CONFIG_FUNCTION_TRACER=y$' "$DEFCONFIG" || echo "CONFIG_FUNCTION_TRACER=y" >> "$DEFCONFIG"
+
+          # Sanity — 头文件树必须可达
+          test -d common/drivers/kasumi/include || { echo "::error::kasumi/include broken"; exit 1; }
+          test -d common/drivers/kasumi/internal || { echo "::error::kasumi/internal broken"; exit 1; }
+          echo "Kasumi integration complete"
 
       - name: 配置内核选项
         working-directory: ${{ env.KERNEL_ROOT }}

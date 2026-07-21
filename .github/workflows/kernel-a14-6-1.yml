@@ -75,6 +75,11 @@ on:
         required: false
         type: boolean
         default: false
+      use_kasumi:
+        description: "集成 Kasumi (in-tree obj-y)"
+        required: false
+        type: boolean
+        default: false
       cve_2026_43499_patch:
         description: "应用 CVE-2026-43499 rtmutex 修复链"
         required: false
@@ -84,7 +89,7 @@ on:
         description: "禁用 SUSFS"
         required: true
         type: boolean
-        default: false
+        default: true
   workflow_call:
     inputs:
       kernelsu_variant:
@@ -107,6 +112,10 @@ on:
         required: true
         type: string
       use_rekernel:
+        required: false
+        type: boolean
+        default: false
+      use_kasumi:
         required: false
         type: boolean
         default: false
@@ -141,53 +150,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Kasumi fork: pinned to a single sublevel for reproducible A/B against
+        # Sultan behavior. Expand only after Phase 5 boots clean.
         include:
-          - sub_level: "25"
-            os_patch_level: "2023-10"
-          - sub_level: "43"
-            os_patch_level: "2023-11"
-          - sub_level: "57"
-            os_patch_level: "2024-01"
-          - sub_level: "68"
-            os_patch_level: "2024-03"
-          - sub_level: "75"
-            os_patch_level: "2024-05"
-          - sub_level: "78"
-            os_patch_level: "2024-06"
-          - sub_level: "84"
-            os_patch_level: "2024-07"
-          - sub_level: "90"
-            os_patch_level: "2024-08"
-          - sub_level: "93"
-            os_patch_level: "2024-09"
-          - sub_level: "99"
-            os_patch_level: "2024-10"
-          - sub_level: "112"
-            os_patch_level: "2024-11"
-          - sub_level: "115"
-            os_patch_level: "2024-12"
-          - sub_level: "118"
-            os_patch_level: "2025-01"
-          - sub_level: "124"
-            os_patch_level: "2025-02"
-          - sub_level: "128"
-            os_patch_level: "2025-03"
-          - sub_level: "129"
-            os_patch_level: "2025-04"
-          - sub_level: "134"
-            os_patch_level: "2025-05"
-          - sub_level: "138"
-            os_patch_level: "2025-06"
-          - sub_level: "141"
-            os_patch_level: "2025-07"
-          - sub_level: "145"
-            os_patch_level: "2025-09"
-          - sub_level: "157"
-            os_patch_level: "2025-12"
           - sub_level: "162"
             os_patch_level: "2026-03"
-          - sub_level: "X"
-            os_patch_level: "lts"
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
@@ -202,6 +169,7 @@ jobs:
       use_bbg: ${{ inputs.use_bbg }}
       use_kpm: ${{ inputs.use_kpm }}
       use_rekernel: ${{ inputs.use_rekernel || false }}
+      use_kasumi: ${{ inputs.use_kasumi || false }}
       cve_2026_43499_patch: ${{ inputs.cve_2026_43499_patch }}
       supp_op: false
       enable_susfs: ${{ !inputs.cancel_susfs }}

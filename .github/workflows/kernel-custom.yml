@@ -18,12 +18,12 @@ on:
           - "6.1"
           - "6.6"
           - "6.12"
-        default: "5.10"
+        default: "6.1"
       os_patch_level:
         description: "安全补丁级别 (如 2022-01, lts)"
         required: true
         type: string
-        default: "2022-01"
+        default: "2026-03"
 
       # ==================== KernelSU 配置 ====================
       kernelsu_variant:
@@ -100,6 +100,11 @@ on:
         required: false
         type: boolean
         default: false
+      use_kasumi:
+        description: "集成 Kasumi (in-tree obj-y)"
+        required: false
+        type: boolean
+        default: false
       cve_2026_43499_patch:
         description: "应用 CVE-2026-43499 rtmutex 修复链"
         required: false
@@ -109,7 +114,7 @@ on:
         description: "禁用 SUSFS"
         required: true
         type: boolean
-        default: false
+        default: true
       supp_op:
         description: "启用一加 8E 支持"
         required: false
@@ -209,6 +214,7 @@ jobs:
       use_bbg: ${{ inputs.use_bbg }}
       use_kpm: ${{ inputs.use_kpm }}
       use_rekernel: ${{ inputs.use_rekernel || false }}
+      use_kasumi: ${{ inputs.use_kasumi || false }}
       cve_2026_43499_patch: ${{ inputs.cve_2026_43499_patch }}
       supp_op: ${{ inputs.supp_op || false }}
       enable_susfs: ${{ !inputs.cancel_susfs }}
